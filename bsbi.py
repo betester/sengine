@@ -168,7 +168,7 @@ class BSBIIndex:
         """
         # TODO
 
-    def retrieve(self, query):
+    def boolean_retrieve(self, query):
         """
         Melakukan boolean retrieval untuk mengambil semua dokumen yang
         mengandung semua kata pada query. Jangan lupa lakukan pre-processing

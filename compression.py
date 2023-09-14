@@ -98,10 +98,8 @@ class VBEPostings:
         Melakukan encoding (tentunya dengan compression) terhadap
         list of numbers, dengan Variable-Byte Encoding
         """
-        bytes = []
-        for number in list_of_numbers:
-            bytes.append(VBEPostings.vb_encode_number(number))
-        return b"".join(bytes)
+        # TODO
+        return 0
 
     @staticmethod
     def vb_encode_number(number):
@@ -109,14 +107,8 @@ class VBEPostings:
         Encodes a number using Variable-Byte Encoding
         Lihat buku teks kita!
         """
-        bytes = []
-        while True:
-            bytes.insert(0, number % 128) # prepend ke depan
-            if number < 128:
-                break
-            number = number // 128
-        bytes[-1] += 128 # bit awal pada byte terakhir diganti 1
-        return array.array('B', bytes).tobytes()
+        # TODO
+        return 0
 
     @staticmethod
     def decode(encoded_postings_list):
@@ -145,8 +137,16 @@ class VBEPostings:
         Decoding sebuah bytestream yang sebelumnya di-encode dengan
         variable-byte encoding.
         """
-        # TODO
-        return 0
+        numbers = []
+        n = 0
+        for byte in encoded_bytestream:
+            if (byte < 128):
+                n = 128 * n + byte
+            else:
+                n = 128 * n + byte - 128
+                numbers.append(n)
+                n = 0
+        return numbers
 
     
 

@@ -11,6 +11,6 @@ queries = ["pupil mata", "aktor", "batu permata"]
 for query in queries:
     print("Query  : ", query)
     print("Results:")
-    for doc in BSBI_instance.retrieve(query):
+    for doc in BSBI_instance.boolean_retrieve(query):
         print(doc)
     print()
