@@ -1,5 +1,5 @@
 import array
-
+from functools import reduce
 class StandardPostings:
     """ 
     Class dengan static methods, untuk mengubah representasi postings list
@@ -30,7 +30,7 @@ class StandardPostings:
         # Untuk yang standard, gunakan L untuk unsigned long, karena docID
         # tidak akan negatif. Dan kita asumsikan docID yang paling besar
         # cukup ditampung di representasi 4 byte unsigned.
-        return array.array('L', postings_list).tobytes()
+        return array.array('l', postings_list).tobytes()
 
     @staticmethod
     def decode(encoded_postings_list):
@@ -90,7 +90,13 @@ class VBEPostings:
             bytearray yang merepresentasikan urutan integer di postings_list
         """
         # TODO
-        return None
+        
+        gap_posting_list = [postings_list[0]]
+
+        for i in range(1, len(postings_list)):
+            gap_posting_list.append(postings_list[i] - postings_list[i-1])
+
+        return VBEPostings.vb_encode(gap_posting_list)
     
     @staticmethod
     def vb_encode(list_of_numbers):
@@ -98,9 +104,9 @@ class VBEPostings:
         Melakukan encoding (tentunya dengan compression) terhadap
         list of numbers, dengan Variable-Byte Encoding
         """
-        # TODO
-        return 0
+        return b"".join(list(map(VBEPostings.vb_encode_number, list_of_numbers)))
 
+                 
     @staticmethod
     def vb_encode_number(number):
         """
@@ -108,7 +114,16 @@ class VBEPostings:
         Lihat buku teks kita!
         """
         # TODO
-        return 0
+        byte = bytearray()
+        while True:
+            byte.insert(0, number % 128) 
+            if number < 128:
+                break
+            
+            number //= 128
+        
+        byte[-1] += 128
+        return byte
 
     @staticmethod
     def decode(encoded_postings_list):
@@ -128,8 +143,17 @@ class VBEPostings:
         List[int]
             list of docIDs yang merupakan hasil decoding dari encoded_postings_list
         """
-        # TODO
-        return []
+
+
+
+        decoded_bytestream = VBEPostings.vb_decode(encoded_postings_list)
+        
+        gapless_db = [decoded_bytestream[0]]
+
+        for  i in range(1, len(decoded_bytestream)):
+            gapless_db.append(decoded_bytestream[i] + gapless_db[i-1])
+
+        return gapless_db
 
     @staticmethod
     def vb_decode(encoded_bytestream):
@@ -152,7 +176,7 @@ class VBEPostings:
 
 if __name__ == '__main__':
     
-    postings_list = [34, 67, 89, 454, 2345738]
+    postings_list = [0, 34, 67, 89, 454, 2345738]
     for Postings in [StandardPostings, VBEPostings]:
         print(Postings.__name__)
         encoded_postings_list = Postings.encode(postings_list)

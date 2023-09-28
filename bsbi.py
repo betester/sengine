@@ -5,9 +5,9 @@ import heapq
 import time
 
 from index import InvertedIndexReader, InvertedIndexWriter
-from util import IdMap, sort_intersect_list
+from util import IdMap, sort_intersect_list, remove_stopwords
 from compression import StandardPostings, VBEPostings
-
+from mpstemmer import MPStemmer
 """ 
 Ingat untuk install tqdm terlebih dahulu
 pip intall tqdm
@@ -34,6 +34,7 @@ class BSBIIndex:
         self.output_path = output_path
         self.index_name = index_name
         self.postings_encoding = postings_encoding
+        self.stemmer = MPStemmer()
 
         # Untuk menyimpan nama-nama file dari semua intermediate inverted index
         self.intermediate_indices = []
@@ -72,7 +73,7 @@ class BSBIIndex:
             with InvertedIndexWriter(index_id, self.postings_encoding, path = self.output_path) as index:
                 self.write_to_index(td_pairs, index)
                 td_pairs = None
-    
+
         self.save()
 
         with InvertedIndexWriter(self.index_name, self.postings_encoding, path = self.output_path) as merged_index:
@@ -120,7 +121,16 @@ class BSBIIndex:
         parse_block(...).
         """
         # TODO
-        return []
+        mapped_token = []
+        for file_path in tqdm(next(os.walk(os.path.join(self.data_path, block_path)))[2]):
+           with open(os.path.join(self.data_path, block_path, file_path)) as file: 
+               termpstemmerkan = self.stemmer.stem_kalimat(file.read())
+               tokens = termpstemmerkan.split(" ")
+               tokens = remove_stopwords(tokens) 
+               mapped_token += [(self.term_id_map[term], self.doc_id_map[file_path]) for term in tokens]
+               
+
+        return mapped_token
 
     def write_to_index(self, td_pairs, index):
         """
@@ -166,7 +176,11 @@ class BSBIIndex:
             Instance InvertedIndexWriter object yang merupakan hasil merging dari
             semua intermediate InvertedIndexWriter objects.
         """
-        # TODO
+
+        for term, posting_list in heapq.merge(*indices):
+            merged_index.append(term, posting_list)
+            
+
 
     def boolean_retrieve(self, query):
         """
@@ -192,8 +206,24 @@ class BSBIIndex:
         JANGAN LEMPAR ERROR/EXCEPTION untuk terms yang TIDAK ADA di collection.
         """
         # TODO
-        return []
+        self.load()
+        queries = [self.term_id_map[i] for i in query.split(" ")]
+        query_posting_lists = []
+        try:
+    
+            with InvertedIndexReader(self.index_name, self.postings_encoding, self.output_path) as reader:
+                
+                for term in queries:
+                    query_posting_lists.append(reader.get_postings_list(term))    
 
+            intersected_pl = query_posting_lists[0]
+
+            for i in range(1, len(query_posting_lists)):
+                intersected_pl = sort_intersect_list(intersected_pl, query_posting_lists[i])
+            
+            return list(map(lambda x : self.doc_id_map[x], intersected_pl))
+        except Exception as e:
+            return []
 
 if __name__ == "__main__":
 

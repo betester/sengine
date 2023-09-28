@@ -75,6 +75,7 @@ class InvertedIndex:
         with open(self.metadata_file_path, 'rb') as f:
             self.postings_dict, self.terms = pickle.load(f)
             self.term_iter = self.terms.__iter__()
+        
 
         return self
 
@@ -120,7 +121,11 @@ class InvertedIndexReader(InvertedIndex):
         diproses di memori. JANGAN MEMUAT SEMUA INDEX DI MEMORI!
         """
         # TODO
-        return (None, [])
+
+        current_term = next(self.term_iter)
+        posting_list = self.get_postings_list(current_term)
+
+        return (current_term, posting_list)
 
     def get_postings_list(self, term):
         """
@@ -131,16 +136,23 @@ class InvertedIndexReader(InvertedIndex):
         byte tertentu pada file (index file) dimana postings list dari
         term disimpan.
         """
-        # TODO
-        return []
+        starting_index, _, byte_length = self.postings_dict[term]
+        self.index_file.seek(starting_index)
+        encoded_pl = self.index_file.read(byte_length)
+        decoded_pl = self.encoding_method.decode(encoded_pl)
+
+        return decoded_pl
 
 class InvertedIndexWriter(InvertedIndex):
     """
     Class yang mengimplementasikan bagaimana caranya menulis secara
     efisien Inverted Index yang disimpan di sebuah file.
     """
+     
     def __enter__(self):
         self.index_file = open(self.index_file_path, 'wb+')
+        self.curent_insert_position = 0
+     
         return self
 
     def append(self, term, postings_list):
@@ -173,7 +185,12 @@ class InvertedIndexWriter(InvertedIndex):
         postings_list: List[Int]
             List of docIDs dimana term muncul
         """
-        # TODO
+        encoded_pl = self.encoding_method.encode(postings_list)
+        self.terms.append(term)
+        self.postings_dict[term] = (self.curent_insert_position, len(postings_list), len(encoded_pl))
+        self.index_file.write(encoded_pl)
+        self.curent_insert_position += len(encoded_pl)
+        
         return []
 
 if __name__ == "__main__":
